@@ -1,20 +1,3 @@
-### Tasks 3/23/2017:
-#   1. Set up search for unattend file
-#   2. Set up sysvol search for vb and bat files
-#   3. 
-
-#goal
-#  makee a script that opens up a channel to C2 traffic
-#  First thing is to document the environment; then open channel for commands
-#  use steg to infil/exfil data
-#  1. script runs
-#  2. script begins checking reddit.com/u/stegger for commands
-#    uses current time and keeps an index of previous commands and times
-#    maybe just make a new channel and start posting wallpapers to it
-#  3. when a command is posted and is new, script will execute it and store results in a picture that it will upload to reddit
-#    creating BMP will be tricky, have to round up to even number (% 2) then divide by 2 for dimensions
-#  4. 
-
 #STEP 0a: Import modules
 Import-Module ServerManager
 #Add-WindowsFeature RSAT-AD-PowerShell
