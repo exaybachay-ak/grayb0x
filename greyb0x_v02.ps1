@@ -40,12 +40,15 @@ function fastping{
 #  https://technet.microsoft.com/en-us/library/hh849903.aspx  
 #STEP 1a: Grab info on active net adapter from windows command line for parsing
 $activeIP = get-wmiobject win32_networkadapterconfiguration | ? {$_.ipenabled}
+netsh firewall show state | Tee-Object -file $outfile -Append
+netsh advfirewall firewall show rule name=all | Tee-Object -file $outfile -Append
 
 #STEP 1b: Configure variables for subnet and IP address
 write-output "" | Tee-Object -file $outfile -append
 write-output "[+] Gathering primary network adapter information" | Tee-Object -file $outfile -append
 $ipInfo = $activeIP.ipAddress[0]
 $subInfo = $activeIP.ipsubnet[0]
+
 
 #STEP 1c: Gather info about System
 write-output "[+] Time is $test $test2" | Tee-Object -file $outfile -append
@@ -57,11 +60,31 @@ net users | Tee-Object -file $outfile -append
 query user /server:localhost | Tee-Object -file $outfile -append
 wmic qfe get CSName"," Caption"," Description"," HotFixID"," InstalledOn | Sort-Object InstalledOn | Tee-Object -file $outfile -append
 get-process | Sort-Object ID | format-table id,path,processname,starttime,description | Tee-Object -file $outfile -Append
+get-process | Sort-Object ID | format-table path
 $services = Get-WMIObject Win32_Service | where {
     $_.Caption -notmatch "Windows" -and $_.PathName -notmatch "Windows" -and $_.PathName -notmatch "policyhost.exe" -and $_.Name -ne "LSM" -and $_.PathName -notmatch "OSE.EXE" -and $_.PathName -notmatch "OSPPSVC.EXE" -and $_.PathName -notmatch "Microsoft Security Client"
 }
 $services | format-table Name,PathName | Tee-Object -file $outfile -append
 $services | format-table Name,FullPathName,ProcessID,StartMode,State,Status,ExitCode | Tee-Object -file $outfile -append
+
+#grabbing installed software from registry
+$UninstallKey = ”SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall” 
+$reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey(‘LocalMachine’,$computername)
+$regkey=$reg.OpenSubKey($UninstallKey)
+$subkeys=$regkey.GetSubKeyNames()
+$array = @()
+foreach($key in $subkeys){
+    $thisKey=$UninstallKey+”\\”+$key 
+    $thisSubKey=$reg.OpenSubKey($thisKey) 
+    $obj = New-Object PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name “ComputerName” -Value $computername
+    $obj | Add-Member -MemberType NoteProperty -Name “DisplayName” -Value $($thisSubKey.GetValue(“DisplayName”))
+    $obj | Add-Member -MemberType NoteProperty -Name “DisplayVersion” -Value $($thisSubKey.GetValue(“DisplayVersion”))
+    $obj | Add-Member -MemberType NoteProperty -Name “InstallLocation” -Value $($thisSubKey.GetValue(“InstallLocation”))
+    $obj | Add-Member -MemberType NoteProperty -Name “Publisher” -Value $($thisSubKey.GetValue(“Publisher”))
+    $array += $obj
+}
+$array.DisplayName | Tee-Object -file $outfile -Append 
 
 #STEP 1d: Gather info about nearby systems
 write-output "" | Tee-Object -file $outfile -append
