@@ -20,8 +20,7 @@ function fastping{
   [int]$delay = 100
   )
 
-  $ping = new-object System.Net.NetworkInformation.Ping
-  # see http://msdn.microsoft.com/en-us/library/system.net.networkinformation.ipstatus%28v=vs.110%29.aspx
+  $ping = new-object System.Net.NetworkInformation.Ping  # see http://msdn.microsoft.com/en-us/library/system.net.networkinformation.ipstatus%28v=vs.110%29.aspx
   try {
     if ($ping.send($computername,$delay).status -ne "Success") {
       return $false;
