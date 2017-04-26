@@ -1,2 +1,4 @@
 # grayb0x
-Pre and post exploitation automation using PowerShell (geared towards post, but may add a lot more pre later once post is fully developed).  Vacuums up data and optionally snags interesting info from network using MiTM, SMB, and ARP poisoning.
+This utility is intended for security analysts on whitebox(blue team) and blackbox(red team) engagements.
+
+It is broken out into local and network functionality to provide control over SOC visibility into activities being conducted.
