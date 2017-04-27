@@ -34,21 +34,21 @@ function fastping{
   }
 }
 
-write-host " "
-write-host " "
-write-host " "
-write-host "    What will you be scanning today?"
-write-host "    HINT: Choose Local if you are worried about NIDS"
-write-host "            or Network if you are worried about HIDS"
-write-host " "
-write-host "    1) Local"
-write-host "    2) Network"
-write-host "    3) Both"
-write-host "    ================================"
+write-output " "
+write-output " "
+write-output " "
+write-output "    What will you be scanning today?"
+write-output "    HINT: Choose Local if you are worried about NIDS"
+write-output "            or Network if you are worried about HIDS"
+write-output " "
+write-output "    1) Local"
+write-output "    2) Network"
+write-output "    3) Both"
+write-output "    ================================"
 $scope = read-host "  >"
 
 if($scope -lt 1 -or $scope -gt 3){
-    write-host "You must enter between 1 and 3 for your selection.  Try again."
+    write-output "You must enter between 1 and 3 for your selection.  Try again."
 }
 
 else{
@@ -57,33 +57,44 @@ else{
     #  use below link to make regex work
     #  https://technet.microsoft.com/en-us/library/hh849903.aspx  
     #STEP 1a: Grab info on active net adapter from windows command line for parsing
-     write-output "[+] Time is $test $test2" | Tee-Object -file $outfile -append
+    write-output "[+] Time is $test $test2" | Tee-Object -file $outfile -append
     write-output "" | Tee-Object -file $outfile -append
     write-output "" | Tee-Object -file $outfile -append
 
     if($scope -eq 1 -or $scope -eq 3){
         write-output "[+] Scanning localhost for system information" | Tee-Object -file $outfile -append
-        #STEP 1b: Configure variables for subnet and IP address
         write-output "" | Tee-Object -file $outfile -append
-        write-output "[+] Gathering primary network adapter information" | Tee-Object -file $outfile -append
-
-        #STEP 1c: Gather info about System
-        $activeIP = get-wmiobject win32_networkadapterconfiguration | ? {$_.ipenabled}
-        netsh firewall show state | Tee-Object -file $outfile -Append
-        netsh advfirewall firewall show rule name=all | Tee-Object -file $outfile -Append
-
         Get-CimInstance Win32_OperatingSystem | Select-Object  Caption, InstallDate, ServicePackMajorVersion, OSArchitecture, BootDevice,  BuildNumber, CSName, RegisteredUser | FL | Tee-Object -file $outfile -append
-        net users | Tee-Object -file $outfile -append
+
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning localhost for users" | Tee-Object -file $outfile -append
         query user /server:localhost | Tee-Object -file $outfile -append
+        net users | Tee-Object -file $outfile -append
+
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning localhost for updates" | Tee-Object -file $outfile -append
         wmic qfe get CSName"," Caption"," Description"," HotFixID"," InstalledOn | Sort-Object InstalledOn | Tee-Object -file $outfile -append
+
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning localhost for processes" | Tee-Object -file $outfile -append
         get-process | Sort-Object ID | format-table id,path,processname,starttime,description | Tee-Object -file $outfile -Append
         get-process | Sort-Object ID | format-table path
         $services = Get-WMIObject Win32_Service | where {
             $_.Caption -notmatch "Windows" -and $_.PathName -notmatch "Windows" -and $_.PathName -notmatch "policyhost.exe" -and $_.Name -ne "LSM" -and $_.PathName -notmatch "OSE.EXE" -and $_.PathName -notmatch "OSPPSVC.EXE" -and $_.PathName -notmatch "Microsoft Security Client"
         }
+
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning localhost for services" | Tee-Object -file $outfile -append
         $services | format-table Name,PathName | Tee-Object -file $outfile -append
         $services | format-table Name,FullPathName,ProcessID,StartMode,State,Status,ExitCode | Tee-Object -file $outfile -append
 
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning localhost for installed software" | Tee-Object -file $outfile -append
         #grabbing installed software from registry
         $UninstallKey = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall" 
         $reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$computername)
@@ -103,13 +114,25 @@ else{
         }
         $array.DisplayName | Tee-Object -file $outfile -Append
 
+        #STEP 1b: Configure variables for subnet and IP address
+        write-output "" | Tee-Object -file $outfile -append
+        write-output "" | Tee-Object -file $outfile -append
+        write-output "[+] Gathering primary network adapter information" | Tee-Object -file $outfile -append
+
+        #STEP 1c: Gather info about System
+        $activeIP = get-wmiobject win32_networkadapterconfiguration | ? {$_.ipenabled}
+        netsh firewall show state | Tee-Object -file $outfile -Append
+        #netsh advfirewall firewall show rule name=all | Tee-Object -file $outfile -Append
+        netstat -abno | Tee-Object -file $outfile -append
+
         #STEP 1d: Gather info about nearby systems
         write-output "" | Tee-Object -file $outfile -append
         write-output "" | Tee-Object -file $outfile -append
         write-output "[+] Scanning for network systems in segment" | Tee-Object -file $outfile -append
         net use | Tee-Object -file $outfile -Append
-        net view | Tee-Object -file $outfile -append
-        netstat -abno | Tee-Object -file $outfile -append
+        net view /ALL | Tee-Object -file $outfile -append
+        net view /DOMAIN:WORKGROUP | Tee-Object -file $outfile -append
+
 
         #STEP 1f: Look for misconfigurations - unattend.xml
         $unattend = get-childitem C:\ -recurse -filter "unattend.*" -ErrorAction SilentlyContinue
@@ -124,10 +147,10 @@ else{
             }
         }
 
-        #STEP 1g: Look through network sysvol for scripts
+        #STEP 1g: Look through local sysvol for scripts
         write-output "" | Tee-Object -file $outfile -append
         write-output "" | Tee-Object -file $outfile -append
-        write-output "[+] Scanning for Active Directory scripts in cache" | Tee-Object -file $outfile -append
+        write-output "[+] Scanning for Active Directory scripts in local cache" | Tee-Object -file $outfile -append
 
         $localsysvoldir = "C:\Users\$env:UserName\AppData\Local\GroupPolicy\DataStore\"
         $localsysvol = Get-ChildItem $sysvoldir -file -recurse
@@ -153,6 +176,46 @@ else{
         $localps | Tee-Object -file $outfile -append
         $localvbs | Tee-Object -file $outfile -append
         $localbat | Tee-Object -file $outfile -append
+
+
+        #STEP 1g: Look through local system for scripts
+        write-output "" | Tee-Object -file $outfile -append
+        write-output "" | Tee-Object -file $outfile -append
+        write-output "[+] Scanning for scripts on local host" | Tee-Object -file $outfile -append
+
+        $localdrives = Get-WmiObject -query "SELECT * FROM win32_logicaldisk where DriveType = '3'"
+        $localdriveletters = @()
+
+        foreach($d in $localdrives){
+            $localdriveletters += $d.DeviceID
+        }
+
+        foreach($l in $localdriveletters){
+            $localhostvol = Get-ChildItem $l -file -recurse
+
+            $localhostps = @()
+            $localhostvbs = @()
+            $localhostbat = @()
+
+            foreach($s in $localhostvol){
+                $testlocalps = $s.FullName -match '\.ps1$'
+                $testlocalvbs = $s.FullName -match '\.vbs$'
+                $testlocalbat = $s.FullName -match '\.bat$'
+                if($testlocalps -eq 'True'){
+                    $localhostps += $s.FullName
+                }
+                elseif($testlocalvbs -eq 'True'){
+                    $localhostvbs += $s.FullName | Tee-Object -file $outfile -append
+                }
+                elseif($testlocalbat -eq 'True'){
+                    $localhostbat += $s.FullName | Tee-Object -file $outfile -append
+                }
+            }
+            $localhostps | Tee-Object -file $outfile -append
+            $localhostvbs | Tee-Object -file $outfile -append
+            $localhostbat | Tee-Object -file $outfile -append
+
+        }
 
     }
 
