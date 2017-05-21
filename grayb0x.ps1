@@ -279,16 +279,21 @@ if($scope -eq 2 -or $scope -eq 3){
     $userdomain = systeminfo | findstr /B /C:"Domain"
     if($userdomain -ne "Domain:                    WORKGROUP"){
         net view /DOMAIN:$userdomain | Tee-Object -file $outfile -append
-    }
+
+        $newdomain = ''
+        for ($i = 27;$i -le $userdomain.length;$i++){
+            $newdomain += $userdomain[$i]
+        }
+        net view /DOMAIN:$newdomain
+    
+        ####---->STEP 1g: Look through network sysvol for scripts
+        write-output " " | Tee-Object -file $outfile -append
+        write-output " " | Tee-Object -file $outfile -append
+        write-output "[+] Scanning for Active Directory scripts          ///////////////////////////////////////////////////////////////////" | Tee-Object -file $outfile -append
 
 
-    ####---->STEP 1g: Look through network sysvol for scripts
-    write-output " " | Tee-Object -file $outfile -append
-    write-output " " | Tee-Object -file $outfile -append
-    write-output "[+] Scanning for Active Directory scripts          ///////////////////////////////////////////////////////////////////" | Tee-Object -file $outfile -append
-
-    if($userdomain -ne "Domain:                    WORKGROUP"){
-        $sysvoldir = "\\$domain\sysvol\$domain\"
+        
+        $sysvoldir = "\\$newdomain\sysvol\$newdomain\"
         $sysvol = Get-ChildItem $sysvoldir -file -recurse
 
         $ps = @()
@@ -317,6 +322,9 @@ if($scope -eq 2 -or $scope -eq 3){
     if($userdomain -eq "Domain:                    WORKGROUP"){
         write-output "    No scripts because system is not joined to a domain" | Tee-Object -file $outfile -append
     }
+}
+
+
 
     <#
     ####---->STEP 2: Iterate through subnet and scan hosts
@@ -434,7 +442,7 @@ if($scope -eq 2 -or $scope -eq 3){
     }
     #>
 
-}
+
 
 else {
     return
